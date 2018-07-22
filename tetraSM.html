@@ -1,0 +1,127 @@
+
+	<!doctype html>
+	<html>
+	   <body>
+		  <canvas width = "20" height = "20" id = "my_Canvas"></canvas>
+
+		  <script>
+		  function vec3(x, y,z) {
+			this.x = x || 0;
+			this.y = y || 0;
+			this.z = z || 0;
+			};
+			var dot=function( a, b) {return a.x*b.x + a.y*b.y + a.z*b.z ; };
+
+			
+		     
+//the charge projection matrix ################################################################
+				var Yw_axis=new vec3;//weak hypercharge
+				var T3_axis=new vec3;//weak isospin
+				var Q_axis=new vec3;//electric charge		    	
+//				document.write( "<br>");
+
+				var charges = function(p1,p2,info1)			//charge value dumps				
+				{
+					var v1=new vec3;
+					v1.x=p2.x-p1.x;
+					v1.y=p2.y-p1.y;
+					v1.z=p2.z-p1.z;
+					var Yw=dot(v1,Yw_axis);//the charge projection matrix
+					var T3=dot(v1,T3_axis);
+					var Q =dot(v1,Q_axis);
+				    document.write( info1 + '___Q:'+ Q.toFixed(2) + '___T3:' + T3.toFixed(2) + '___Yw:' + Yw.toFixed(2) + "<br>");
+				}
+
+
+				var p1=new vec3;		    	
+				var p2=new vec3;		    	
+				var p3=new vec3;		    	
+				var p4=new vec3;		    	
+				var p0=new vec3;		    	
+				var p6=new vec3;		    	
+				var p5=new vec3;		    	
+				var p4=new vec3;		    	
+				var a1=new vec3;		    	
+				var a2=new vec3;		    	
+				var pb0=new vec3;		    	
+				var pw1=new vec3;		    	
+				var pw2=new vec3;		    	
+				var pw3=new vec3;		    	
+
+//tetrahedon model of charge space of Standard Model  ##############################################################
+
+				var edge=Math.sqrt(3.0)/2.0; //length of spin, edge of tetrahedron  (multiplied by hbar (reduced planck-constant) )
+				var r=0.5;//length of projection of spin       (multiplied by hbar)
+	
+				//base cube generator  (corners of tetrahedron, the tetrahedron in the cube)  
+				var cube_edge=Math.sqrt(edge*edge/2.0); // the edge is the diagonal of the side of the cube
+				p1=new vec3(-cube_edge/2.0,-cube_edge/2.0,-cube_edge/2.0);
+				p2=new vec3(-cube_edge/2.0, cube_edge/2.0, cube_edge/2.0);
+				p3=new vec3( cube_edge/2.0, cube_edge/2.0,-cube_edge/2.0);
+				p4=new vec3( cube_edge/2.0,-cube_edge/2.0, cube_edge/2.0);
+	
+				p0.x=(p1.x+p2.x+p3.x)/3.0;//face center1 for quarks
+				p0.y=(p1.y+p2.y+p3.y)/3.0;
+				p0.z=(p1.z+p2.z+p3.z)/3.0;
+				
+				p6.x=(p1.x+p3.x+p4.x)/3.0;//face center2
+				p6.y=(p1.y+p3.y+p4.y)/3.0;
+				p6.z=(p1.z+p3.z+p4.z)/3.0;
+
+				p5.x=(p1.x+p2.x+p3.x+p4.x)/4.0;//volume center
+				p5.y=(p1.y+p2.y+p3.y+p4.y)/4.0;
+				p5.z=(p1.z+p2.z+p3.z+p4.z)/4.0;
+
+	
+
+//from exact values
+				var ang=Math.acos(r/edge);//the tetrahedron angle = charge projection angle =   acos(0.5/(sqrt(3)/2))=sqrt(2/3)
+//				var sinang=Math.sin(ang);
+				var sinang=Math.sqrt(2.0/3.0);
+				Yw_axis=new vec3(sinang*2.0,0.0,sinang*2.0);
+				T3_axis=new vec3(sinang,0.0,-sinang);
+				Q_axis=new vec3(sinang*2.0,0.0,0.0);
+
+
+
+//draw particles	
+//left handed fermions 
+				charges(p4,p2,"eL");//electron   Left handed
+				charges(p4,p3,"vL");	//neutrino
+				charges(p0,p3,"uL");// up quark
+				charges(p2,p6,"uL2");	
+				charges(p0,p2,"dL");	//down quark
+				charges(p3,p6,"dL2");	
+
+//right handed fermions
+				charges(p4,p1,"eR");
+				charges(p0,p4,"uR");
+				charges(p1,p6,"uR2");
+
+				charges(p0,p1,"dR");
+				charges(p4,p6,"dR2");	
+
+//bosons
+				a1.x=(p4.x+p1.x)/2.0;//eR center
+				a1.y=(p4.y+p1.y)/2.0;
+				a1.z=(p4.z+p1.z)/2.0;
+				
+				a2.x=(p2.x+p3.x)/2.0;//W venter
+				a2.y=(p2.y+p3.y)/2.0;
+				a2.z=(p2.z+p3.z)/2.0;
+				charges(a1,a2,"Z");//and the photon / gamma /
+				charges(p2,p3,"W");	// W boson
+
+				charges(p1,p2,"H");	//Higgs boson
+				charges(p1,p3,"HQ");	//charged Higgs
+
+				charges(p1,p5,"W3");	
+				charges(p2,p5,"W1");	
+				charges(p3,p5,"W2");	
+				charges(p4,p5,"B0");
+				
+		  </script>
+		
+	   </body>
+	</html> 
+

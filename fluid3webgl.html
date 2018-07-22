@@ -1,0 +1,513 @@
+<!doctype html>
+<html>
+   <body>
+      <canvas width = "1260" height = "650" id = "my_Canvas"></canvas>
+
+      <script>
+
+         /*============= Creating a canvas ======================*/
+         var canvas = document.getElementById('my_Canvas');
+         gl = canvas.getContext('experimental-webgl');
+
+
+	
+
+         /*========== Defining and storing the geometry ==========*/
+
+         
+         var r=1.5,pi=3.1415926,Nx=256,Ny=256;//128 or 256
+	     var vertices=new Array(Nx*Ny*3),i=0,j=0;
+	     var colors=new Array(Nx*Ny*3);
+	     var indices=new Array((Nx-1)*(Ny-1)*3*2);
+	     
+	     for(y=0;y<Ny;y++)
+	     for(x=0;x<Nx;x++)
+	     {
+		     vertices[i]=x/Nx;    i++;
+		     vertices[i]=y/Ny;    i++;
+		     vertices[i]=0;    i++;
+		     
+		     colors[j]=0.0; j++;
+		     colors[j]=0.2; j++;
+		     colors[j]=0.0; j++;
+		 }
+	     i=0;
+	     for(y=0;y<Ny-1;y++)
+	     for(x=0;x<Nx-1;x++)
+	     {
+		     indices[i]=y*Nx+x; i++;
+		     indices[i]=y*Nx+x+1; i++;
+		     indices[i]=(y+1)*Nx+x+1; i++;
+
+		     indices[i]=y*Nx+x; i++;
+		     indices[i]=(y+1)*Nx+x+1; i++;
+		     indices[i]=(y+1)*Nx+x; i++;
+	     }
+
+         // Create and store data into vertex buffer
+         var vertex_buffer = gl.createBuffer ();
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);// later
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+         // Create and store data into color buffer
+         var color_buffer = gl.createBuffer ();
+//         gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+//         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+         // Create and store data into index buffer
+         var index_buffer = gl.createBuffer ();
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+                                              
+         /*=================== SHADERS =================== */
+
+         var vertCode = 'attribute vec3 position;'+
+            'uniform mat4 Pmatrix;'+
+            'uniform mat4 Vmatrix;'+
+            'uniform mat4 Mmatrix;'+
+            'attribute vec3 color;'+//the color of the point
+            'varying vec3 vColor;'+
+            'void main(void) { '+//pre-built function
+               'gl_Position = vec4(-1.0+position*2.0, 1.);'+
+//               'vColor = color;'+
+				'vec3 coltab[7];'+
+				'coltab[0]=vec3(1.0,0.0,0.0);'+
+				'coltab[1]=vec3(1.0,1.0,0.0);'+
+				'coltab[2]=vec3(0.0,1.0,0.0);'+
+				'coltab[3]=vec3(0.0,0.0,0.0);'+
+				'coltab[4]=vec3(0.0,0.0,1.0);'+
+				'coltab[5]=vec3(0.0,1.0,1.0);'+
+				'coltab[6]=vec3(1.0,0.0,1.0);'+
+				'float q=color.r*30.0+3.0;'+ //20
+				'if(q>5.99) q=5.99;'+
+				'if(q<0.0) q=0.0;'+
+				'float t=fract(q);'+
+//				'int oo=int(q);'+  //pfff  really?
+				'if(q<1.0) vColor =mix(coltab[0],coltab[1],t);'+
+				'if(q>=1.0 && q<2.0) vColor =mix(coltab[1],coltab[2],t);'+
+				'if(q>=2.0 && q<3.0) vColor =mix(coltab[2],coltab[3],t);'+
+				'if(q>=3.0 && q<4.0) vColor =mix(coltab[3],coltab[4],t);'+
+				'if(q>=4.0 && q<5.0) vColor =mix(coltab[4],coltab[5],t);'+
+				'if(q>=5.0 ) 		vColor =mix(coltab[5],coltab[6],t);'+
+            '}';
+
+         var fragCode = 'precision mediump float;'+
+            'varying vec3 vColor;'+
+            'void main(void) {'+
+               'gl_FragColor = vec4(vColor, 1.);'+
+            '}';
+
+         var vertShader = gl.createShader(gl.VERTEX_SHADER);
+         gl.shaderSource(vertShader, vertCode);
+         gl.compileShader(vertShader);
+
+         var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+         gl.shaderSource(fragShader, fragCode);
+         gl.compileShader(fragShader);
+			
+         var shaderprogram = gl.createProgram();
+         gl.attachShader(shaderprogram, vertShader);
+         gl.attachShader(shaderprogram, fragShader);
+         gl.linkProgram(shaderprogram);
+         
+         /*======== Associating attributes to vertex shader =====*/
+         var _Pmatrix = gl.getUniformLocation(shaderprogram, "Pmatrix");
+         var _Vmatrix = gl.getUniformLocation(shaderprogram, "Vmatrix");
+         var _Mmatrix = gl.getUniformLocation(shaderprogram, "Mmatrix");
+
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+         var _position = gl.getAttribLocation(shaderprogram, "position");
+         gl.vertexAttribPointer(_position, 3, gl.FLOAT, false,0,0);
+         gl.enableVertexAttribArray(_position);
+
+         gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+         var _color = gl.getAttribLocation(shaderprogram, "color");
+         gl.vertexAttribPointer(_color, 3, gl.FLOAT, false,0,0) ;
+         gl.enableVertexAttribArray(_color);
+         
+        
+         gl.useProgram(shaderprogram);
+
+         /*==================== MATRIX ====================== */
+         
+         function get_projection(angle, a, zMin, zMax) {
+            var ang = Math.tan((angle*.5)*Math.PI/180);//angle*.5
+            return [
+               0.5/ang, 0 , 0, 0,
+               0, 0.5*a/ang, 0, 0,
+               0, 0, -(zMax+zMin)/(zMax-zMin), -1,
+               0, 0, (-2*zMax*zMin)/(zMax-zMin), 0 
+			   ];
+         }
+         
+         var proj_matrix = get_projection(40, canvas.width/canvas.height, 1, 100);
+         var mo_matrix = [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ];
+         var view_matrix = [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ];
+
+         view_matrix[14] = view_matrix[14]-6;
+
+         /*================= Mouse events ======================*/
+
+         var AMORTIZATION = 0.95;
+         var drag = false;
+         var old_x, old_y;
+         var dX = 0, dY = 0;
+			
+         var mouseDown = function(e) {
+            drag = true;
+            old_x = e.pageX, old_y = e.pageY;
+            e.preventDefault();
+            return false;
+         };
+         
+         var mouseUp = function(e){
+            drag = false;
+         };
+         
+         var mouseMove = function(e) {
+            if (!drag) return false;
+            dX = (e.pageX-old_x)*2*Math.PI/canvas.width,
+            dY = (e.pageY-old_y)*2*Math.PI/canvas.height;
+            THETA+= dX;
+            PHI+=dY;
+            old_x = e.pageX, old_y = e.pageY;
+            e.preventDefault();
+         };
+         
+         canvas.addEventListener("mousedown", mouseDown, false);
+         canvas.addEventListener("mouseup", mouseUp, false);
+         canvas.addEventListener("mouseout", mouseUp, false);
+         canvas.addEventListener("mousemove", mouseMove, false);
+
+         /*=========================rotation================*/
+
+         function rotateX(m, angle) {
+            var c = Math.cos(angle);
+            var s = Math.sin(angle);
+            var mv1 = m[1], mv5 = m[5], mv9 = m[9];
+				
+            m[1] = m[1]*c-m[2]*s;
+            m[5] = m[5]*c-m[6]*s;
+            m[9] = m[9]*c-m[10]*s;
+
+            m[2] = m[2]*c+mv1*s;
+            m[6] = m[6]*c+mv5*s;
+            m[10] = m[10]*c+mv9*s;
+         }
+
+         function rotateY(m, angle) {
+            var c = Math.cos(angle);
+            var s = Math.sin(angle);
+            var mv0 = m[0], mv4 = m[4], mv8 = m[8];
+				
+            m[0] = c*m[0]+s*m[2];
+            m[4] = c*m[4]+s*m[6];
+            m[8] = c*m[8]+s*m[10];
+
+            m[2] = c*m[2]-s*mv0;
+            m[6] = c*m[6]-s*mv4;
+            m[10] = c*m[10]-s*mv8;
+         }
+
+         /*=================== Drawing =================== */
+
+         var THETA = -1.3,
+         PHI = 0.2;
+         var time_old = 0;
+		 var oldbuff;
+		 var newcolor=new Float32Array(colors);
+
+		var curl_z=new Array(Nx*Ny);
+		var velocity_x=new Array(Nx*Ny);
+		var velocity_y=new Array(Nx*Ny);
+		var velocity2_x=new Array(Nx*Ny);
+		var velocity2_y=new Array(Nx*Ny);
+		var divergence=new Array(Nx*Ny);
+		var pressure=new Array(Nx*Ny);
+		var pressure2=new Array(Nx*Ny);
+		var coll_norm_x=new Array(Nx*Ny);
+		var coll_norm_y=new Array(Nx*Ny);
+		var coll_mask=new Array(Nx*Ny);
+		var coll_mask2=new Array(Nx*Ny);
+		
+
+		function indx(x,y) {
+			return y*Nx+x;
+		}
+
+
+// init fields
+	     for(y=0;y<Ny;y++)
+	     for(x=0;x<Nx;x++)
+	     {
+		     velocity_x[indx(x,y)]=0.0;
+		     velocity_y[indx(x,y)]=-0.6;//1.2
+		     pressure[indx(x,y)]=0
+	     }
+     	for(y=1;y<Ny-1;y+=1)
+		for(x=1;x<Nx-1;x+=1)	
+		{	
+			var m=indx(x,y);
+			coll_mask[m]=0;
+			coll_mask2[m]=0;
+			
+			var dx=x-Nx/2;			
+			var dy=y-Ny/2-30;			
+			var r=Math.sqrt(dx*dx+dy*dy);
+			if(r<10.0)
+			{
+				coll_mask[m]=1;
+				coll_norm_x[m]=dx/r;
+				coll_norm_y[m]=dy/r;
+			}
+		}
+	
+	
+//setup neigh
+		for(y=1;y<Ny-1;y+=1)
+		for(x=1;x<Nx-1;x+=1)	
+		if(coll_mask[indx(x,y)]==0)
+		{
+			var m=indx(x,y);
+	if(coll_mask[indx(x-1,y)]==1) {coll_mask2[m]=2;coll_norm_x[m]=coll_norm_x[indx(x-1,y)];coll_norm_y[m]=coll_norm_y[indx(x-1,y)];}
+	if(coll_mask[indx(x+1,y)]==1) {coll_mask2[m]=2;coll_norm_x[m]=coll_norm_x[indx(x+1,y)];coll_norm_y[m]=coll_norm_y[indx(x+1,y)];}
+	if(coll_mask[indx(x,y-1)]==1) {coll_mask2[m]=2;coll_norm_x[m]=coll_norm_x[indx(x,y-1)];coll_norm_y[m]=coll_norm_y[indx(x,y-1)];}
+	if(coll_mask[indx(x,y+1)]==1) {coll_mask2[m]=2;coll_norm_x[m]=coll_norm_x[indx(x,y+1)];coll_norm_y[m]=coll_norm_y[indx(x,y+1)];}
+		}
+
+//------------------	     
+	     
+         var animate = function(time) {
+            var dt = time-time_old;
+					
+            if (!drag) {
+               dX *= AMORTIZATION, dY*=AMORTIZATION;
+               THETA+=dX, PHI+=dY;
+            }
+               
+            //set model matrix to I4
+					
+            mo_matrix[0] = 1, mo_matrix[1] = 0, mo_matrix[2] = 0,
+            mo_matrix[3] = 0,
+					
+            mo_matrix[4] = 0, mo_matrix[5] = 1, mo_matrix[6] = 0,
+            mo_matrix[7] = 0,
+					
+            mo_matrix[8] = 0, mo_matrix[9] = 0, mo_matrix[10] = 1,
+            mo_matrix[11] = 0,
+					
+            mo_matrix[12] = 0, mo_matrix[13] = 0, mo_matrix[14] = 0,
+            mo_matrix[15] = 1;
+
+            rotateY(mo_matrix, THETA);
+            rotateX(mo_matrix, PHI);
+					
+            time_old = time; 
+            gl.enable(gl.DEPTH_TEST);
+
+
+//---------------
+		var gposx,gposy;
+		
+		function lerp(a,b,c)//linear interpolation
+		{
+			return a+(b-a)*c;
+		}
+		function sampleOFvelocity2( posx,posy)//cubic filter of velocity field
+		{
+			gposx=0;//posx?
+			gposy=0;
+			var x=Math.floor(posx);
+			var y=Math.floor(posy);
+			if((x+1)>=Nx) return ;
+			if((y+1)>=Ny) return ;
+			if((x)<0) return ;
+			if((y)<0) return ;
+			posx-=x;//fract()
+			posy-=y;
+	
+			var v1  =velocity2_x[indx(x,y)];
+			var v1x =velocity2_x[indx(x+1,y)];
+			var v1xy=velocity2_x[indx(x+1,y+1)];
+			var v1y =velocity2_x[indx(x,y+1)];
+	
+			var v31x=lerp(v1,v1x,posx);
+			var v32x=lerp(v1y,v1xy,posx);
+			var v33x=lerp(v31x,v32x,posy);
+
+			v1  =velocity2_y[indx(x,y)];
+			v1x =velocity2_y[indx(x+1,y)];
+			v1xy=velocity2_y[indx(x+1,y+1)];
+			v1y =velocity2_y[indx(x,y+1)];
+
+			var v31y=lerp(v1,v1x,posx);
+			var v32y=lerp(v1y,v1xy,posx);
+			var v33y=lerp(v31y,v32y,posy);
+
+			gposx=v33x;
+			gposy=v33y;
+		}
+
+		function calc_curl()
+		{
+			var x,y;
+			for(y=1;y<Ny-1;y++)
+			for(x=1;x<Nx-1;x++)
+			{
+				var dAx_y=(velocity_y[indx(x+1,y)] - velocity_y[indx(x-1,y)]);
+				var dAy_x=(velocity_x[indx(x,y+1)] - velocity_x[indx(x,y-1)]);
+
+				curl_z[indx(x,y)]=((dAy_x)-(dAx_y))/2.0;//like cross product!  x=y=0
+			}
+		}
+
+		function calc_divergence() 
+		{
+			var x,y;
+			for(y=2;y<Ny-2;y++)
+			for(x=2;x<Nx-2;x++)
+			{
+		     	divergence[indx(x,y)]=(
+		     		velocity_x[indx(x+1,y)] - velocity_x[indx(x-1,y)] + 
+		     		velocity_y[indx(x,y+1)] - velocity_y[indx(x,y-1)])/2.0;
+			}
+		}
+		function calc_gradient() 
+		{
+			var x,y;
+			for(y=2;y<Ny-2;y++)
+			for(x=2;x<Nx-2;x++)
+			{//   velocity-=gradient of pressure
+		     	velocity_x[indx(x,y)] -= (pressure[indx(x+1,y)] - pressure[indx(x-1,y)])/2.0;
+		     	velocity_y[indx(x,y)] -= (pressure[indx(x,y+1)] - pressure[indx(x,y-1)])/2.0;
+			}
+		}
+		function calc_jacobi()//relax pressure
+		{
+			var x,y;
+			for(y=0;y<Ny;y++)
+			for(x=0;x<Nx;x++) {var m=indx(x,y);pressure2[m]=pressure[m];}
+
+			for(y=2;y<Ny-2;y++)
+			for(x=2;x<Nx-2;x++)
+			{
+				var m=indx(x,y);
+				pressure[m]=	(
+					pressure2[indx(x+1,y)]+
+					pressure2[indx(x-1,y)]+
+					pressure2[indx(x,y+1)]+
+					pressure2[indx(x,y-1)]-
+					divergence[m]*2.8)/4.0;   //2.5
+			}
+		}
+		function calc_flow_advect() 
+		{
+			var x,y;
+			for(y=0;y<Ny;y++)
+			for(x=0;x<Nx;x++) {var m=indx(x,y);velocity2_x[m]=velocity_x[m];velocity2_y[m]=velocity_y[m];}
+
+			for(y=2;y<Ny-2;y++)
+			for(x=2;x<Nx-2;x++)
+			{
+				var m=indx(x,y);
+				var posx=x,posy=y;
+	
+				var dt=0.85;//0.85
+				posx-=velocity2_x[m]*dt;
+				posy-=velocity2_y[m]*dt;
+	
+//				var dissipation=1.0;//0.99;
+				sampleOFvelocity2(posx,posy);//   *dissipation;
+				velocity_x[m]=gposx;
+				velocity_y[m]=gposy;
+			}
+		}
+		function calc_collision()
+		{
+			var x,y;
+			for(y=0;y<Ny;y+=1)
+			for(x=0;x<Nx;x+=1)
+			{
+				var m=indx(x,y);
+
+				if(coll_mask2[m]==2)//neigh surface
+				{
+					var remain=coll_norm_x[m]*velocity_x[m] + coll_norm_y[m]*velocity_y[m];//dot(norm,vel)
+
+					velocity_x[m]=velocity_x[m] - coll_norm_x[m]*remain*2.0;//2 ok
+					velocity_y[m]=velocity_y[m] - coll_norm_y[m]*remain*2.0;
+				
+/*					velocity_x[m]=velocity_x[m]-coll_norm_x[m]*remain;//?
+					velocity_y[m]=velocity_y[m]-coll_norm_y[m]*remain;
+					var r=Math.sqrt(velocity_x[m]*velocity_x[m] + velocity_y[m]*velocity_y[m]);
+					velocity_x[m]+=velocity_x[m]/r*remain;
+					velocity_y[m]+=velocity_y[m]/r*remain;*/
+				}
+				
+				if(coll_mask[m]==1)//inside
+				{
+					pressure[m]=0.0;
+					velocity_x[m]=0.0001;
+					velocity_y[m]=0.0;
+				}
+			}
+		}
+		
+		
+		function fluidSym(dt) 
+		{
+			var k;
+
+			calc_flow_advect();
+			calc_collision();
+			calc_divergence();
+			for(k=0;k<4;k++) calc_jacobi();
+			calc_gradient();
+			calc_curl();
+		}
+		
+
+		fluidSym(time);
+
+
+	     for(y=0;y<Ny;y++)
+	     for(x=0;x<Nx;x++)
+	     {
+	     	var j1=(x*Nx+y)*3;
+			colors[j1+0]=curl_z[indx(x,y)];	// the red value
+	     }
+
+		 for(i=0;i<Nx*Ny*3;i++) newcolor[i]=colors[i];
+		 gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+         gl.bufferData(gl.ARRAY_BUFFER, newcolor, gl.STATIC_DRAW);
+
+//---------------
+
+					
+            // gl.depthFunc(gl.LEQUAL);
+					
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.clearDepth(1.0);
+            gl.viewport(0.0, 0.0, canvas.width, canvas.height);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            gl.uniformMatrix4fv(_Pmatrix, false, proj_matrix);
+            gl.uniformMatrix4fv(_Vmatrix, false, view_matrix);
+            gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix);
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+
+            window.requestAnimationFrame(animate);
+         }
+			
+         animate(0);
+				
+      </script>
+		
+   </body>
+</html> 
+
+
+

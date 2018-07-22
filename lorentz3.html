@@ -1,0 +1,275 @@
+
+	<!doctype html>
+	<html>
+	   <body>
+		  <canvas width = "1220" height = "650" id = "my_Canvas"></canvas>
+
+		  <script>
+		  
+//vec3 class  ----------------------------------------		  
+function vec3(x, y,z) {
+	this.x = x || 0;
+	this.y = y || 0;
+	this.z = z || 0;
+}
+//instant methods
+vec3.prototype = {
+	negative: function() {
+		this.x = -this.x;
+		this.y = -this.y;
+		this.z = -this.z;
+		return this;
+	},
+	add: function(v) {
+		if (v instanceof vec3)  {this.x += v.x;this.y += v.y;this.z += v.z;// parm vec3
+		} else 					{this.x += v  ;this.y += v  ;this.z += v;}// parm scalar
+		return this;
+	},
+	sub: function(v) {
+		if (v instanceof vec3)  {this.x -= v.x;this.y -= v.y;this.z -= v.z;
+		} else 					{this.x -= v  ;this.y -= v  ;this.z -= v;}
+		return this;
+	},
+	mul: function(v) {
+		if (v instanceof vec3)  {this.x *= v.x;this.y *= v.y;this.z *= v.z;
+		} else 					{this.x *= v  ;this.y *= v  ;this.z *= v;}
+		return this;
+	},
+	div: function(v) {
+		if (v instanceof vec3)  {this.x /= v.x;this.y /= v.y;this.z /= v.z;
+		} else 					{this.x /= v  ;this.y /= v  ;this.z /= v;}
+		return this;
+	}
+	};
+
+//static methods
+	vec3.add = function(a,b) {
+		if (b instanceof vec3)  {return new vec3(a.x+b.x,a.y+b.y,a.z+b.z );}// parm vec3
+		else 					{return new vec3(a.x+b  ,a.y+b  ,a.z+b );}// parm scalar
+		return b;
+	};
+	vec3.sub = function(a,b) {
+		if (b instanceof vec3)  {return new vec3(a.x-b.x,a.y-b.y,a.z-b.z );}
+		else 					{return new vec3(a.x-b  ,a.y-b  ,a.z-b );}
+		return this;
+	};
+	vec3.mul = function(a,b) {
+		if (b instanceof vec3)  {return new vec3(a.x*b.x,a.y*b.y,a.z*b.z );}
+		else 					{return new vec3(a.x*b  ,a.y*b  ,a.z*b );}
+		return this;
+	};
+	vec3.div = function(a,b) {
+		if (b instanceof vec3)  {return new vec3(a.x/b.x,a.y/b.y,a.z/b.z );}
+		else 					{return new vec3(a.x/b  ,a.y/b  ,a.z/b );}
+		return this;
+	};
+	vec3.mad = function(a,b,c) {// multiply add
+		if (b instanceof vec3)  {return new vec3(a.x+b.x*c,a.y+b.y*c,a.z+b.z*c );}
+		else 					{return new vec3(a.x+b*c  ,a.y+b*c  ,a.z+b*c );}
+		return this;
+	};
+	vec3.dot = function(a, b) 	{return a.x*b.x + a.y*b.y + a.z*b.z;	};
+	vec3.len = function(a) 		{return Math.sqrt(vec3.dot(a,a));	};
+	vec3.cross = function(a, b) 
+	{
+		var vx=(a.y*b.z) - (b.y*a.z);
+		var vy=(a.z*b.x) - (b.z*a.x);
+		var vz=(a.x*b.y) - (b.x*a.y);
+		return new vec3(vx,vy,vz);	
+	};
+	vec3.cvariant = function(a) 	{var b=new vec3;	b=vec3.div(a,vec3.dot(a,a)); return b;}; 
+	vec3.normalize = function(a) {
+		var t=vec3.len(a);
+		var b=new vec3;
+		b.x =a.x/t;
+		b.y =a.y/t;
+		b.z =a.z/t;
+		
+		return b;
+	}
+// for dump    console.log();	     document.write(w1.z + ' ');
+
+			var cos=function(a) {return Math.cos(a);}
+			var sin=function(a) {return Math.sin(a);}
+			var acos=function(a) {return Math.acos(a);}
+			var asin=function(a) {return Math.asin(a);}
+			var tan=function(a) {return Math.tan(a);}
+			var sqrt=function(a) {return Math.sqrt(a);}
+			var floor=function(a) {return Math.floor(a);}
+		     var pi=3.1415926;
+		     var pi2=pi*2.0;
+
+		     var canvas = document.getElementById('my_Canvas');//		     gl = canvas.getContext('experimental-webgl');
+			var ctx=canvas.getContext("2d");
+
+		     /*================= Mouse events ======================*/
+
+		     var AMORTIZATION = 0.95;
+		     var drag = false;
+		     var old_x, old_y;
+		     var dX = 0, dY = 0;
+		     var pX = 0, pY = 0;
+			
+		     var mouseDown = function(e) {
+		        drag = true;
+		        old_x = e.pageX, old_y = e.pageY;
+		        e.preventDefault();
+		        return false;
+		     };
+		     
+		     var mouseUp = function(e){
+		        drag = false;
+		     };
+		     
+		     var mouseMove = function(e) {
+		        if (!drag) return false;
+		        pX = (e.pageX)/canvas.width,
+		        pY = (e.pageY)/canvas.height;
+		        dX = (e.pageX-old_x)/canvas.width,
+		        dY = (e.pageY-old_y)/canvas.height;
+		        old_x = e.pageX, old_y = e.pageY;
+		        e.preventDefault();
+		     };
+		     
+		     canvas.addEventListener("mousedown", mouseDown, false);
+		     canvas.addEventListener("mouseup", mouseUp, false);
+		     canvas.addEventListener("mouseout", mouseUp, false);
+		     canvas.addEventListener("mousemove", mouseMove, false);
+
+
+
+		     /*=================== Drawing =================== */
+
+
+		     var time_old = 0;//	     var firstrun=1;
+			var c=3e8;//lightspeed
+			var wide=30.0;
+		     var x2,y2,x3=-1.0,t3=-1.0,x4=-1.0,t4=-1.0;//undef
+
+		
+		     var animate = function(time) {
+		        var dt = time-time_old;
+					
+		        if (!drag) {        }
+		        time_old = time; 
+
+		     var qline = function(x1,y1,x2,y2,color)
+		     {
+		     	var dx=300,ymax=550;
+		     	
+		     	x1=floor(x1+dx);
+		     	y1=floor(ymax-y1);
+		     	x2=floor(x2+dx);
+		     	y2=floor(ymax-y2);
+		     	
+				ctx.lineWidth=2;
+				ctx.strokeStyle=color;// like this "#00aa55";
+				ctx.beginPath();
+				ctx.moveTo(x1,y1);
+				ctx.lineTo(x2,y2);
+				ctx.stroke();
+		     }
+		     var LorentzTransformation = function( x1, t1, v)
+			 {
+				var gamma=1.0/sqrt(1.0-v*v/(c*c));
+
+				x2=(x1 - v*t1)*gamma;
+				t2=(t1 - v*x1/(c*c))*gamma;
+			 }	
+			 var drawTimeCoords = function( v, color)
+			 { 
+				var x2a,t2a,x2b,t2b;
+				var x=0,time=0,i;
+	
+				for( i=0;i<16;i++)
+				{
+					LorentzTransformation(x-100,time,v); x2a=x2;t2a=t2;
+					LorentzTransformation(x+400,time,v); x2b=x2;t2b=t2;
+		
+					qline(x2a,t2a*c,x2b,t2b*c,color);
+					time += wide/c;
+				}
+			 }
+		     var drawWorldLine = function( x1, t1, v)
+			 {			
+				LorentzTransformation(x1,t1,v);
+
+				if(v==0.0)// red / yellow / orange something
+				{
+					if(t4!=-1.0)	qline(x2,t2*c,x4,t4*c,"#aa5500");
+					if(t3!=-1.0)	qline(x2,t2*c,x3,t3*c,"#ffaa00");
+				}
+				else//moving RF (reference frame)  blue
+				{
+					if(t4!=-1.0)	qline(x2,t2*c,x4,t4*c,"#0055aa");
+					if(t3!=-1.0)	qline(x2,t2*c,x3,t3*c,"#00aaff");
+				}
+
+				x4=x3;t4=t3;
+				x3=x2;t3=t2;
+			 }
+			 
+			var drawLightClock = function( xposition, time, v)
+			{
+				var i=0,n=16;
+				t3=-1.0;t4=-1.0;//reset
+	
+		    	while(i<=n)
+			    {
+			    	drawWorldLine(xposition,time,v);
+			    	xposition += wide; //v*dt  v=c  c*wide/c=wide
+			    	time += wide/c;//dt=wide/c
+			    	i++;
+
+					if(i<=n)
+					{
+				    	drawWorldLine(xposition,time,v);
+				    	xposition -= wide; 
+				    	time += wide/c;
+				    }
+				    i++;
+			    }
+			}
+			 var drawFourvectors = function( v, color)
+			 { 
+				var x2a,t2a,x2b,t2b;
+				var x=0,time=0,time2,i;
+	
+				for( i=0;i<16;i++)
+				for( j=0;j<16;j++)
+				{
+					x=i*20.0;
+					time=j*30.0/c;
+			    	time2 = time+wide/c*0.5;
+					LorentzTransformation(x,time,v); x2a=x2;t2a=t2;
+					LorentzTransformation(x,time2,v); x2b=x2;t2b=t2;
+		
+					qline(x2a,t2a*c,x2b,t2b*c,color);
+				}
+			 }
+
+			ctx.fillStyle="black";
+			ctx.clearRect(0,0,canvas.width,canvas.height);//ctx.fillRect(0,0,300,150);
+
+				var v1=-pX*c*0.6;//60% of lightspeed
+				var v2=(1.0-pX)*c*0.6;	
+				drawTimeCoords(v1,"#ffff00");
+				drawTimeCoords(v2,"#00ffff");
+	
+				drawLightClock(0.0,0.0,v1);
+				drawLightClock(200.0,0.0,v1);
+				drawLightClock(0.0,0.0,v2);	
+				drawLightClock(200.0,0.0,v2);
+
+				drawFourvectors(v1,"#ff0000");
+		     
+		        window.requestAnimationFrame(animate);
+		     }
+			
+		     animate(0);
+				
+		  </script>
+		
+	   </body>
+	</html> 
+

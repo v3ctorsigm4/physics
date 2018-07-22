@@ -1,0 +1,14 @@
+g++ arrow2.cpp -O3  -lX11 -msse3 -std=c++11 -o arrow2
+g++ bell2.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o bell2 
+g++ diffgeo5b.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o diffgeo5b
+g++ emwavefld.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o emwavefld
+g++ grav2.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o grav2
+g++ grav9.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o grav9
+g++ qeraser.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o qeraser
+g++ specrel2.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o specrel2
+g++ spinor3ori.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o spinor3ori
+g++ wedge4b.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o wedge4b
+g++ tetra2.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o tetra
+g++ phys5.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o phys5
+g++ spinwave.cpp -O3  -lX11 -msse3 -std=c++11 -lGL -o spinwave
+
